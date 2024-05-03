@@ -4,33 +4,49 @@ This pipeline is basically just a simple way to genrate a gene-based phylogeny f
 This pipeline was used for O'Donnell et al. 2023 (DOI)  
 
 
-###Example below is using the genus Aspergillus which contains ~1200 genomes as of 2023 (particularly flavus, oryzae and fumigatus)
+Example below is using the genus Aspergillus which contains ~1200 genomes as of 2023 (particularly flavus, oryzae and fumigatus)
 
-####PUT AUTOMATIC DOWNLOADING STEP  
-####RUNNING THIS ON ENTIRE GENUS GENOMES DOWNLOADED FROM NCBI  
-####AFTER DOWNLOADING ALL GENOMES EXCLUDING THOSE THAT ARE MARKED AS CONCERNING THE RAW GENOME FILES ARE RENAMED TO KEEP JUST THE GCF/GCA NUMBER AND THE UNIQUE CONTIG/SCAFFOLD NUMBER GIVEN BY NCBI/SRA  
-###JUST MOVE INTO THE 'DATA' REGION WITH ALL THE GENOMES AND RUN THE BELOW  
+## Step 1
+Download all the genomes
 
-    mkdir ../genomes_renamed  
-    ls **/*.fna | while read genome
+    ##first we can get all genomes from the genus
+    ##create an env for the ncbi command line library 
+    #mamba create -n ncbi_datasets
+    #conda activate ncbi_datasets
+    #mamba install -c conda-forge ncbi-datasets-cli
+    ##this exlcudes genomes labelled as atypical (generally due to genome size)
+    ##only takes genbank and doesn't therefore duplicate those also considered reference sequences
+    ##excludes any metagenome assembled datasets
+    conda activate ncbi_datasets
+    datasets download genome taxon Aspergillus --filename Aspergillus_dataset.zip --exclude-atypical --assembly-source genbank --mag exclude
+    unzip Aspergillus_dataset.zip -d Aspergillus_dataset
+    rm Aspergillus_dataset.zip
+    gzip Aspergillus_dataset/ncbi_dataset/data/*/*.fna
+###ADD SOME PENICILLIUM FROM ACCESSIONS
+datasets download genome accession GCA_029582055.1,GCA_030515275.1
+unzip ncbi_dataset.zip
+rm ncbi_dataset.zip
+mv ncbi_dataset Penicillium_outgroup_dataset
+conda deactivate
+
+
+## Step 2  
+Rename all the genomes (optional)
+
+    ##just modufing contig/scaffold names and removing underscores in the assembly accession naming system
+    mkdir genomes_renamed  
+    ls Aspergillus_dataset/ncbi_dataset/data/*/*.fna | while read genome
     do
     assembly=$( echo $genome | awk -F "/" '{print $NF }' | awk -F "." '{print $1}' | sed 's/GCF_/GCF/g' | sed 's/GCA_/GCA/g'  )
-    cat $genome | awk -v assembly="$assembly" '{if($0 ~ ">" ) {print ">"assembly"_"$1} else {print}}' | sed 's/_>/_/g' | sed 's/NW_/NW/g' | sed 's/NC_/NC/g' | gzip > ../data_renamed/${assembly}.fa.gz
+    cat $genome | awk -v assembly="$assembly" '{if($0 ~ ">" ) {print ">"assembly"_"$1} else {print}}' | sed 's/_>/_/g' | sed 's/NW_/NW/g' | sed 's/NC_/NC/g' | gzip > data_renamed/${assembly}.fa.gz
     done  
 
-####ALL THE COMPLETE DATASET FILES WERE THEN NAMED AS 'all_${genus}' AND PLACED IN A FOLDER CALLLED 'genome_datasets'  
-####ACTUALLY IN ~/projects/ncbi_aspergillus_penicillium/starfish/  
-###LASTLY TOOK THE FILE **/ncbi_dataset/data/data_summary.tsv AND TRANSFORMED IT TO A SIMPLER FORMAT WITH THE GCA TAG AND THE STRAIN NAME.  
-###here we will just use the entire aspergillus dataset and run BUSCO and a quick veryfasttree analysis  
-###THEN NEED TO CHECK IF THE NAMING IS ALL CORRECT!  
+## Step 3  
+Run BUSCO on all genomes
 
     ###first run busco
-    genus="aspergillus"
-    cd ~/projects/Penicillium/phylogenetics/
-    mkdir ncbi_${genus} && cd ncbi_${genus}
-    mkdir genomes
     mkdir busco_analyses
-    #######MORE COMMENTS FOR CREATING THE ENVIRONMENT (including adding ,muscle, trimal and mafft)
+#######MORE COMMENTS FOR CREATING THE ENVIRONMENT (including adding ,muscle, trimal and mafft)
     conda activate busco
     ##needed to install muscle into the busco conda env and expecially the v5 version due to changes in the output formats
     #mamba install -c bioconda muscle
@@ -38,10 +54,11 @@ This pipeline was used for O'Donnell et al. 2023 (DOI)
     ##get all the genomes except for those outside of the penicillium and aspergillus genus such as fusarium
     ##the aspergillus genomes are kept as outgroups (only four of them)
     ##for mucor use the busco library '-l fungi_odb10'
-    ls ../../../ncbi_penicillium_aspergillus/genome_datasets/all_${genus}/ncbi_dataset/data_renamed/* | while read genome
+    ls genomes_renamed/*fa.gz | while read genome
     do
     genome2=$( echo $genome | sed "s/.fa.gz//g" | awk -F "/" '{print $NF}'  )
-    species=$( cat ../../../ncbi_penicillium_aspergillus/genome_datasets/all_${genus}/all_${genus}.genome_strain.tsv | awk -v genome2="$genome2" '{if($3 ~ genome2"." ) print $1}' )
+####DO I NEED SPECIES?????????????
+species=$( cat ../../../ncbi_penicillium_aspergillus/genome_datasets/all_${genus}/all_${genus}.genome_strain.tsv | awk -v genome2="$genome2" '{if($3 ~ genome2"." ) print $1}' )
     if [ ! -d "busco_analyses/${species}.${genome2}" ]
     then
     cp $genome genomes/${species}.${genome2}.fa.gz
