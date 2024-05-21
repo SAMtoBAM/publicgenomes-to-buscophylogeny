@@ -14,20 +14,23 @@ Download all the genomes
     #mamba create -n ncbi_datasets
     #conda activate ncbi_datasets
     #mamba install -c conda-forge ncbi-datasets-cli
-    ##this exlcudes genomes labelled as atypical (generally due to genome size)
+    ##this step excludes genomes labelled as atypical (generally due to genome size) using the clearly labelled '--exclude-atypical' option
     ##only takes genbank and doesn't therefore duplicate those also considered reference sequences
-    ##excludes any metagenome assembled datasets
+    ##excludes any metagenome assembled datasets (for obvious reasons)
     conda activate ncbi_datasets
     datasets download genome taxon Aspergillus --filename Aspergillus_dataset.zip --exclude-atypical --assembly-source genbank --mag exclude
     unzip Aspergillus_dataset.zip -d Aspergillus_dataset
     rm Aspergillus_dataset.zip
     gzip Aspergillus_dataset/ncbi_dataset/data/*/*.fna
-###ADD SOME PENICILLIUM FROM ACCESSIONS
-datasets download genome accession GCA_029582055.1,GCA_030515275.1
-unzip ncbi_dataset.zip
-rm ncbi_dataset.zip
-mv ncbi_dataset Penicillium_outgroup_dataset
-conda deactivate
+    ##ADD SOME PENICILLIUM FROM ACCESSIONS (manually selected some accessions)
+    datasets download genome accession GCA_029582055.1,GCA_030515275.1
+    unzip ncbi_dataset.zip
+    rm ncbi_dataset.zip
+    mv ncbi_dataset Penicillium_outgroup_dataset
+###COMBINE WITHT THE ASPERGILLUS BUT HOW TO KEEP TRACK
+    gzip Penicillium_outgroup_dataset/data/*/*.fna
+    cp Penicillium_outgroup_dataset/data/*/*.fna.gz Aspergillus_dataset/ncbi_dataset/data/*/*.fna
+    conda deactivate
 
 
 ## Step 2  
@@ -44,16 +47,17 @@ Rename all the genomes (optional)
 ## Step 3  
 Run BUSCO on all genomes
 
+    ###First create a busco conda env for running BUSCO
+    #conda install -c conda-forge -c bioconda busco
+    #conda activate busco
+    ##needed to install muscle into the busco conda env and expecially the v5 version due to changes in the output formats
+    #mamba install -c bioconda muscle 
     ###first run busco
     mkdir busco_analyses
-#######MORE COMMENTS FOR CREATING THE ENVIRONMENT (including adding ,muscle, trimal and mafft)
     conda activate busco
-    ##needed to install muscle into the busco conda env and expecially the v5 version due to changes in the output formats
-    #mamba install -c bioconda muscle
-
-    ##get all the genomes except for those outside of the penicillium and aspergillus genus such as fusarium
-    ##the aspergillus genomes are kept as outgroups (only four of them)
-    ##for mucor use the busco library '-l fungi_odb10'
+    
+    ##get all the genomes
+    ##the Penicillium genomes are kept as outgroups (only two of them)
     ls genomes_renamed/*fa.gz | while read genome
     do
     genome2=$( echo $genome | sed "s/.fa.gz//g" | awk -F "/" '{print $NF}'  )
