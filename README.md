@@ -61,8 +61,9 @@ Run BUSCO on all genomes
     ls genomes_renamed/*fa.gz | while read genome
     do
     genome2=$( echo $genome | sed "s/.fa.gz//g" | awk -F "/" '{print $NF}'  )
-####DO I NEED SPECIES?????????????
-species=$( cat ../../../ncbi_penicillium_aspergillus/genome_datasets/all_${genus}/all_${genus}.genome_strain.tsv | awk -v genome2="$genome2" '{if($3 ~ genome2"." ) print $1}' )
+
+    ####DO I NEED SPECIES?????????????
+    species=$( cat ../../../ncbi_penicillium_aspergillus/genome_datasets/all_${genus}/all_${genus}.genome_strain.tsv | awk -v genome2="$genome2" '{if($3 ~ genome2"." ) print $1}' )
     if [ ! -d "busco_analyses/${species}.${genome2}" ]
     then
     cp $genome genomes/${species}.${genome2}.fa.gz
