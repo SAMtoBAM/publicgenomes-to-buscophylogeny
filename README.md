@@ -6,6 +6,9 @@ This pipeline was used for O'Donnell et al. 2023 (DOI)
 
 Example below is using the genus Aspergillus which contains ~1200 genomes as of 2023 (particularly flavus, oryzae and fumigatus)
 
+R script will automatically identify the common node for all species (based on ndoe IDs) and label them accordingly in the plot <br/>
+Can use this to also identify incorrectly labelled genomes (based on the public ID given, e.g. on NCBI where there are MANY errors)
+
 ## Step 1
 Download all the genomes
 
